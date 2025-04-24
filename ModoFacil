@@ -7,7 +7,23 @@ nano /etc/selinux/config
 # Navegue até a opção SELINUX e coloque como disable (SELINUX=disable)
 
 # Faça o Download e instalação dos componentes usando o curl
-curl -sO https://packages.wazuh.com/4.11/wazuh-install.sh && sudo bash ./wazuh-install.sh -a
+curl -sO https://packages.wazuh.com/4.11/wazuh-install.sh && chmod 744 wazuh-install.sh && sudo bash ./wazuh-install.sh -a
+
+###############################################################################################################################################################################
+# Explicação do comando passo a passo
+# curl -sO https://packages.wazuh.com/4.11/wazuh-install.sh
+# curl: ferramenta de linha de comando para transferir dados via HTTP(S), FTP, etc.
+# -s: modo silent (sem barra de progresso ou mensagens).
+# -O: salva o arquivo com o nome original do servidor (neste caso, wazuh-install.sh).
+# chmod 744 wazuh-install.sh
+# chmod: altera permissões de arquivos.
+# 744: define permissões como: dono: leitura, escrita, execução | grupo: apenas leitura | outros: apenas leitura
+# sudo bash ./wazuh-install.sh -a
+# sudo: executa o comando como administrador.
+# bash: usa o interpretador de shell bash para rodar o script.
+# ./wazuh-install.sh: caminho relativo para o script que você acabou de baixar.
+# -a: parâmetro do script do Wazuh, que significa instalação All-in-One (geralmente instala: Wazuh Manager, Filebeat, Elasticsearch, Kibana e configura tudo automaticamente)
+###############################################################################################################################################################################
 
 # Este comando gera credenciais automáticamente ao término da instalação
 # Anote as credenciais para uso posterior 
