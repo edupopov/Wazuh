@@ -1,0 +1,67 @@
+// Aula 5 - Instalação da Dashboard
+
+# dnf install libcap
+
+# DASH=4.10.0
+
+# dnf install -y https://packages.wazuh.com/4.x/yum/wazuh-dashboard-$DASH-1.x86_64.rpm
+
+# vim /etc/wazuh-dashboard/opensearch_dashboards.yml
+
+server.host: 0.0.0.0
+server.port: 443
+opensearch.hosts: ["https://192.168.15.140:9200", "https://192.168.15.141:9200","https://192.168.15.142:9200","https://192.168.15.143:9200"]
+opensearch.ssl.verificationMode: certificate
+#opensearch.username:
+#opensearch.password:
+opensearch.requestHeadersAllowlist: ["securitytenant","Authorization"]
+opensearch_security.multitenancy.enabled: false
+opensearch_security.readonly_mode.roles: ["kibana_read_only"]
+server.ssl.enabled: true
+server.ssl.key: "/etc/wazuh-dashboard/certs/dashboard-key.pem"
+server.ssl.certificate: "/etc/wazuh-dashboard/certs/dashboard.pem"
+opensearch.ssl.certificateAuthorities: ["/etc/wazuh-dashboard/certs/root-ca.pem"]
+uiSettings.overrides.defaultRoute: /app/wz-home
+
+# NODE_NAME=haproxy
+
+# mkdir /etc/wazuh-dashboard/certs
+# tar -xf ./wazuh-certificates.tar -C /etc/wazuh-dashboard/certs/ ./$NODE_NAME.pem ./$NODE_NAME-key.pem ./root-ca.pem
+# mv -n /etc/wazuh-dashboard/certs/$NODE_NAME.pem /etc/wazuh-dashboard/certs/dashboard.pem
+# mv -n /etc/wazuh-dashboard/certs/$NODE_NAME-key.pem /etc/wazuh-dashboard/certs/dashboard-key.pem
+# chmod 500 /etc/wazuh-dashboard/certs
+# chmod 400 /etc/wazuh-dashboard/certs/*
+# chown -R wazuh-dashboard:wazuh-dashboard /etc/wazuh-dashboard/certs
+
+# systemctl daemon-reload
+# systemctl enable --now wazuh-dashboard
+# systemctl status wazuh-dashboard
+
+# vim /usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml
+
+hosts:
+   - default:
+      url: https://192.168.15.140
+      port: 55000
+      username: wazuh-wui
+      password: wazuh-wui
+      run_as: false
+
+# systemctl restart wazuh-dashboard
+
+# hostname -I
+
+Troubleshooting
+
+# /var/ossec/bin/wazuh-control restart
+
+# tail /var/ossec/logs/cluster.log
+
+# cat /var/log/wazuh-indexer/wazuh-cluster.log | grep -i -E "error|warn"
+
+
+# cat /var/log/filebeat/filebeat | grep -i -E "error|warn"
+
+# cat /var/ossec/logs/ossec.log | grep -i -E "error|warn"
+
+# journalctl -u wazuh-dashboard | grep -i -E "error|warn"
