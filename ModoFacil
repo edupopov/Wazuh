@@ -1,0 +1,23 @@
+# Desativando o Firewall para o laboratório
+systemctl disable --now firewalld.service
+
+# Edite o arquivo config
+nano /etc/selinux/config
+
+# Navegue até a opção SELINUX e coloque como disable (SELINUX=disable)
+
+# Faça o Download e instalação dos componentes usando o curl
+curl -sO https://packages.wazuh.com/4.11/wazuh-install.sh && sudo bash ./wazuh-install.sh -a
+
+# Este comando gera credenciais automáticamente ao término da instalação
+# Anote as credenciais para uso posterior 
+# Após a instalação utilize http://IP-do-Wazuh:443
+
+# Valide os dados que foram atribuidos (mostra o IPv4 e IPv6 que a VM recebeu)
+hostname -I
+
+# Você também pode reazliar a instalação com os seguintes comandos abaixo
+# REF https://documentation.wazuh.com/current/deployment-options/offline-installation/index.html
+curl -sO https://packages.wazuh.com/4.11/wazuh-install.sh
+chmod 744 wazuh-install.sh
+./wazuh-install.sh -dw deb
