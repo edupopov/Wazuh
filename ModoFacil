@@ -1,6 +1,42 @@
 # Desativando o Firewall para o laboratório
 systemctl disable --now firewalld.service
 
+###########################################################################################
+# Se não quiser desabilitar o firewall libere as regras de portas
+#!/bin/bash
+
+# Atualiza regras de firewall
+echo "Liberando portas necessárias no firewall..."
+
+# Libera a porta 443 (HTTPS) para acesso web
+sudo firewall-cmd --permanent --add-port=443/tcp
+echo "Porta 443 (HTTPS) liberada para acesso web."
+
+# Libera a porta 5601 (Kibana)
+sudo firewall-cmd --permanent --add-port=5601/tcp
+echo "Porta 5601 (Kibana) liberada."
+
+# Libera a porta 1514 (Wazuh TCP)
+sudo firewall-cmd --permanent --add-port=1514/tcp
+echo "Porta 1514 TCP (Wazuh) liberada."
+
+# Libera a porta 1514 (Wazuh UDP)
+sudo firewall-cmd --permanent --add-port=1514/udp
+echo "Porta 1514 UDP (Wazuh) liberada."
+
+# Libera a porta 55000 (Wazuh API)
+sudo firewall-cmd --permanent --add-port=55000/tcp
+echo "Porta 55000 (Wazuh API) liberada."
+
+# Recarrega as configurações do firewall
+sudo firewall-cmd --reload
+echo "Regras de firewall recarregadas."
+
+# Verifica as portas liberadas
+echo "Portas liberadas no firewall:"
+sudo firewall-cmd --list-ports
+
+###########################################################################################
 # Edite o arquivo config
 nano /etc/selinux/config
 
