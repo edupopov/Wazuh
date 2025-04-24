@@ -1,0 +1,341 @@
+// Aula 2 - Instalação do Wazuh Indexer.txt
+
+# VERSAO=4.10
+
+# curl -sO https://packages.wazuh.com/$VERSAO/wazuh-certs-tool.sh
+
+# curl -sO https://packages.wazuh.com/$VERSAO/config.yml
+
+# vim config.yml
+
+nodes:
+  # Wazuh indexer nodes
+  indexer:
+    - name: master
+      ip: "192.168.15.140"
+    - name: worker1
+      ip: "192.168.15.141"
+    - name: worker2
+      ip: "192.168.15.142"
+    - name: worker3
+      ip: "192.168.15.143"
+
+  # Wazuh server nodes
+  # If there is more than one Wazuh server
+  # node, each one must have a node_type
+  server:
+    - name: master
+      ip: "192.168.15.140"
+      node_type: master
+    - name: worker1
+      ip: "192.168.15.141"
+      node_type: worker
+    - name: worker2
+      ip: "192.168.15.142"
+      node_type: worker
+    - name: worker3
+      ip: "192.168.15.143"
+      node_type: worker
+      
+  # Wazuh dashboard nodes
+  dashboard:
+    - name: haproxy
+      ip: "192.168.15.150"    
+
+# bash ./wazuh-certs-tool.sh -A
+
+# tar -cvf ./wazuh-certificates.tar -C ./wazuh-certificates/ .
+
+# rm -rf ./wazuh-certificates
+
+# scp wazuh-certificates.tar root@192.168.15.141:/root
+
+# scp wazuh-certificates.tar root@192.168.15.142:/root
+
+# scp wazuh-certificates.tar root@192.168.15.143:/root
+
+# scp wazuh-certificates.tar root@192.168.15.150:/root
+
+# dnf install -y coreutils
+
+# VERSAO=4.10.0
+
+# dnf install -y https://packages.wazuh.com/4.x/yum/wazuh-indexer-$VERSAO-1.x86_64.rpm
+
+# vim /etc/wazuh-indexer/opensearch.yml
+
+network.host: "192.168.15.140"
+node.name: "master"
+cluster.initial_master_nodes:
+- "master"
+- "worker1"
+- "worker2"
+- "worker3"
+cluster.name: "wazuh-cluster"
+discovery.seed_hosts:
+  - "192.168.15.140"
+  - "192.168.15.141"
+  - "192.168.15.142"
+  - "192.168.15.143"    
+node.max_local_storage_nodes: "4"
+path.data: /var/lib/wazuh-indexer
+path.logs: /var/log/wazuh-indexer
+
+plugins.security.ssl.http.pemcert_filepath: /etc/wazuh-indexer/certs/indexer.pem
+plugins.security.ssl.http.pemkey_filepath: /etc/wazuh-indexer/certs/indexer-key.pem
+plugins.security.ssl.http.pemtrustedcas_filepath: /etc/wazuh-indexer/certs/root-ca.pem
+plugins.security.ssl.transport.pemcert_filepath: /etc/wazuh-indexer/certs/indexer.pem
+plugins.security.ssl.transport.pemkey_filepath: /etc/wazuh-indexer/certs/indexer-key.pem
+plugins.security.ssl.transport.pemtrustedcas_filepath: /etc/wazuh-indexer/certs/root-ca.pem
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.transport.enforce_hostname_verification: false
+plugins.security.ssl.transport.resolve_hostname: false
+
+plugins.security.authcz.admin_dn:
+- "CN=admin,OU=Wazuh,O=Wazuh,L=California,C=US"
+plugins.security.check_snapshot_restore_write_privileges: true
+plugins.security.enable_snapshot_restore_privilege: true
+plugins.security.nodes_dn:
+- "CN=master,OU=Wazuh,O=Wazuh,L=California,C=US"
+- "CN=worker1,OU=Wazuh,O=Wazuh,L=California,C=US"
+- "CN=worker2,OU=Wazuh,O=Wazuh,L=California,C=US"
+- "CN=worker3,OU=Wazuh,O=Wazuh,L=California,C=US"
+plugins.security.restapi.roles_enabled:
+- "all_access"
+- "security_rest_api_access"
+
+plugins.security.system_indices.enabled: true
+plugins.security.system_indices.indices: [".plugins-ml-model", ".plugins-ml-task", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".opendistro-asynchronous-search-response*", ".replication-metadata-store"]
+
+### Option to allow Filebeat-oss 7.10.2 to work ###
+compatibility.override_main_response_version: true
+
+# NODE_NAME=master
+
+# mkdir /etc/wazuh-indexer/certs
+# tar -xf ./wazuh-certificates.tar -C /etc/wazuh-indexer/certs/ ./$NODE_NAME.pem ./$NODE_NAME-key.pem ./admin.pem ./admin-key.pem ./root-ca.pem
+# mv -n /etc/wazuh-indexer/certs/$NODE_NAME.pem /etc/wazuh-indexer/certs/indexer.pem
+# mv -n /etc/wazuh-indexer/certs/$NODE_NAME-key.pem /etc/wazuh-indexer/certs/indexer-key.pem
+# chmod 500 /etc/wazuh-indexer/certs
+# chmod 400 /etc/wazuh-indexer/certs/*
+# chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/certs
+
+# systemctl daemon-reload
+# systemctl enable --now wazuh-indexer
+# systemctl status wazuh-indexer
+
+Worker 1
+
+# dnf install -y coreutils
+
+# VERSAO=4.10.0
+
+# dnf install -y https://packages.wazuh.com/4.x/yum/wazuh-indexer-$VERSAO-1.x86_64.rpm
+
+# vim /etc/wazuh-indexer/opensearch.yml
+
+network.host: "192.168.15.141"
+node.name: "worker1"
+cluster.initial_master_nodes:
+- "master"
+- "worker1"
+- "worker2"
+- "worker3"
+cluster.name: "wazuh-cluster"
+discovery.seed_hosts:
+  - "192.168.15.140"
+  - "192.168.15.141"
+  - "192.168.15.142"
+  - "192.168.15.143"    
+node.max_local_storage_nodes: "4"
+path.data: /var/lib/wazuh-indexer
+path.logs: /var/log/wazuh-indexer
+
+plugins.security.ssl.http.pemcert_filepath: /etc/wazuh-indexer/certs/indexer.pem
+plugins.security.ssl.http.pemkey_filepath: /etc/wazuh-indexer/certs/indexer-key.pem
+plugins.security.ssl.http.pemtrustedcas_filepath: /etc/wazuh-indexer/certs/root-ca.pem
+plugins.security.ssl.transport.pemcert_filepath: /etc/wazuh-indexer/certs/indexer.pem
+plugins.security.ssl.transport.pemkey_filepath: /etc/wazuh-indexer/certs/indexer-key.pem
+plugins.security.ssl.transport.pemtrustedcas_filepath: /etc/wazuh-indexer/certs/root-ca.pem
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.transport.enforce_hostname_verification: false
+plugins.security.ssl.transport.resolve_hostname: false
+
+plugins.security.authcz.admin_dn:
+- "CN=admin,OU=Wazuh,O=Wazuh,L=California,C=US"
+plugins.security.check_snapshot_restore_write_privileges: true
+plugins.security.enable_snapshot_restore_privilege: true
+plugins.security.nodes_dn:
+- "CN=master,OU=Wazuh,O=Wazuh,L=California,C=US"
+- "CN=worker1,OU=Wazuh,O=Wazuh,L=California,C=US"
+- "CN=worker2,OU=Wazuh,O=Wazuh,L=California,C=US"
+- "CN=worker3,OU=Wazuh,O=Wazuh,L=California,C=US"
+plugins.security.restapi.roles_enabled:
+- "all_access"
+- "security_rest_api_access"
+
+plugins.security.system_indices.enabled: true
+plugins.security.system_indices.indices: [".plugins-ml-model", ".plugins-ml-task", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".opendistro-asynchronous-search-response*", ".replication-metadata-store"]
+
+### Option to allow Filebeat-oss 7.10.2 to work ###
+compatibility.override_main_response_version: true
+
+# NODE_NAME=worker1
+
+# mkdir /etc/wazuh-indexer/certs
+# tar -xf ./wazuh-certificates.tar -C /etc/wazuh-indexer/certs/ ./$NODE_NAME.pem ./$NODE_NAME-key.pem ./admin.pem ./admin-key.pem ./root-ca.pem
+# mv -n /etc/wazuh-indexer/certs/$NODE_NAME.pem /etc/wazuh-indexer/certs/indexer.pem
+# mv -n /etc/wazuh-indexer/certs/$NODE_NAME-key.pem /etc/wazuh-indexer/certs/indexer-key.pem
+# chmod 500 /etc/wazuh-indexer/certs
+# chmod 400 /etc/wazuh-indexer/certs/*
+# chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/certs
+
+# systemctl daemon-reload
+# systemctl enable --now wazuh-indexer
+# systemctl status wazuh-indexer
+
+Worker2:
+
+# dnf install -y coreutils
+
+# VERSAO=4.10.0
+
+# dnf install -y https://packages.wazuh.com/4.x/yum/wazuh-indexer-$VERSAO-1.x86_64.rpm
+
+# vim /etc/wazuh-indexer/opensearch.yml
+
+network.host: "192.168.15.142"
+node.name: "worker2"
+cluster.initial_master_nodes:
+- "master"
+- "worker1"
+- "worker2"
+- "worker3"
+cluster.name: "wazuh-cluster"
+discovery.seed_hosts:
+  - "192.168.15.140"
+  - "192.168.15.141"
+  - "192.168.15.142"
+  - "192.168.15.143"    
+node.max_local_storage_nodes: "4"
+path.data: /var/lib/wazuh-indexer
+path.logs: /var/log/wazuh-indexer
+
+plugins.security.ssl.http.pemcert_filepath: /etc/wazuh-indexer/certs/indexer.pem
+plugins.security.ssl.http.pemkey_filepath: /etc/wazuh-indexer/certs/indexer-key.pem
+plugins.security.ssl.http.pemtrustedcas_filepath: /etc/wazuh-indexer/certs/root-ca.pem
+plugins.security.ssl.transport.pemcert_filepath: /etc/wazuh-indexer/certs/indexer.pem
+plugins.security.ssl.transport.pemkey_filepath: /etc/wazuh-indexer/certs/indexer-key.pem
+plugins.security.ssl.transport.pemtrustedcas_filepath: /etc/wazuh-indexer/certs/root-ca.pem
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.transport.enforce_hostname_verification: false
+plugins.security.ssl.transport.resolve_hostname: false
+
+plugins.security.authcz.admin_dn:
+- "CN=admin,OU=Wazuh,O=Wazuh,L=California,C=US"
+plugins.security.check_snapshot_restore_write_privileges: true
+plugins.security.enable_snapshot_restore_privilege: true
+plugins.security.nodes_dn:
+- "CN=master,OU=Wazuh,O=Wazuh,L=California,C=US"
+- "CN=worker1,OU=Wazuh,O=Wazuh,L=California,C=US"
+- "CN=worker2,OU=Wazuh,O=Wazuh,L=California,C=US"
+- "CN=worker3,OU=Wazuh,O=Wazuh,L=California,C=US"
+plugins.security.restapi.roles_enabled:
+- "all_access"
+- "security_rest_api_access"
+
+plugins.security.system_indices.enabled: true
+plugins.security.system_indices.indices: [".plugins-ml-model", ".plugins-ml-task", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".opendistro-asynchronous-search-response*", ".replication-metadata-store"]
+
+### Option to allow Filebeat-oss 7.10.2 to work ###
+compatibility.override_main_response_version: true
+
+# NODE_NAME=worker2
+
+# mkdir /etc/wazuh-indexer/certs
+# tar -xf ./wazuh-certificates.tar -C /etc/wazuh-indexer/certs/ ./$NODE_NAME.pem ./$NODE_NAME-key.pem ./admin.pem ./admin-key.pem ./root-ca.pem
+# mv -n /etc/wazuh-indexer/certs/$NODE_NAME.pem /etc/wazuh-indexer/certs/indexer.pem
+# mv -n /etc/wazuh-indexer/certs/$NODE_NAME-key.pem /etc/wazuh-indexer/certs/indexer-key.pem
+# chmod 500 /etc/wazuh-indexer/certs
+# chmod 400 /etc/wazuh-indexer/certs/*
+# chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/certs
+
+# systemctl daemon-reload
+# systemctl enable --now wazuh-indexer
+# systemctl status wazuh-indexer
+
+Worker3
+
+# dnf install -y coreutils
+
+# VERSAO=4.10.0
+
+# dnf install -y https://packages.wazuh.com/4.x/yum/wazuh-indexer-$VERSAO-1.x86_64.rpm
+
+# vim /etc/wazuh-indexer/opensearch.yml
+
+network.host: "192.168.15.143"
+node.name: "worker3"
+cluster.initial_master_nodes:
+- "master"
+- "worker1"
+- "worker2"
+- "worker3"
+cluster.name: "wazuh-cluster"
+discovery.seed_hosts:
+  - "192.168.15.140"
+  - "192.168.15.141"
+  - "192.168.15.142"
+  - "192.168.15.143"    
+node.max_local_storage_nodes: "4"
+path.data: /var/lib/wazuh-indexer
+path.logs: /var/log/wazuh-indexer
+
+plugins.security.ssl.http.pemcert_filepath: /etc/wazuh-indexer/certs/indexer.pem
+plugins.security.ssl.http.pemkey_filepath: /etc/wazuh-indexer/certs/indexer-key.pem
+plugins.security.ssl.http.pemtrustedcas_filepath: /etc/wazuh-indexer/certs/root-ca.pem
+plugins.security.ssl.transport.pemcert_filepath: /etc/wazuh-indexer/certs/indexer.pem
+plugins.security.ssl.transport.pemkey_filepath: /etc/wazuh-indexer/certs/indexer-key.pem
+plugins.security.ssl.transport.pemtrustedcas_filepath: /etc/wazuh-indexer/certs/root-ca.pem
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.transport.enforce_hostname_verification: false
+plugins.security.ssl.transport.resolve_hostname: false
+
+plugins.security.authcz.admin_dn:
+- "CN=admin,OU=Wazuh,O=Wazuh,L=California,C=US"
+plugins.security.check_snapshot_restore_write_privileges: true
+plugins.security.enable_snapshot_restore_privilege: true
+plugins.security.nodes_dn:
+- "CN=master,OU=Wazuh,O=Wazuh,L=California,C=US"
+- "CN=worker1,OU=Wazuh,O=Wazuh,L=California,C=US"
+- "CN=worker2,OU=Wazuh,O=Wazuh,L=California,C=US"
+- "CN=worker3,OU=Wazuh,O=Wazuh,L=California,C=US"
+plugins.security.restapi.roles_enabled:
+- "all_access"
+- "security_rest_api_access"
+
+plugins.security.system_indices.enabled: true
+plugins.security.system_indices.indices: [".plugins-ml-model", ".plugins-ml-task", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".opendistro-asynchronous-search-response*", ".replication-metadata-store"]
+
+### Option to allow Filebeat-oss 7.10.2 to work ###
+compatibility.override_main_response_version: true
+
+# NODE_NAME=worker3
+
+# mkdir /etc/wazuh-indexer/certs
+# tar -xf ./wazuh-certificates.tar -C /etc/wazuh-indexer/certs/ ./$NODE_NAME.pem ./$NODE_NAME-key.pem ./admin.pem ./admin-key.pem ./root-ca.pem
+# mv -n /etc/wazuh-indexer/certs/$NODE_NAME.pem /etc/wazuh-indexer/certs/indexer.pem
+# mv -n /etc/wazuh-indexer/certs/$NODE_NAME-key.pem /etc/wazuh-indexer/certs/indexer-key.pem
+# chmod 500 /etc/wazuh-indexer/certs
+# chmod 400 /etc/wazuh-indexer/certs/*
+# chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/certs
+
+# systemctl daemon-reload
+# systemctl enable --now wazuh-indexer
+# systemctl status wazuh-indexer
+
+# /usr/share/wazuh-indexer/bin/indexer-security-init.sh
+
+# curl -k -u admin:admin https://192.168.15.140:9200/_cat/nodes?v
+
+# curl -k -u admin:admin https://192.168.15.140:9200
