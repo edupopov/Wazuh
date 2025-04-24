@@ -1,0 +1,93 @@
+// Aula 3 - Instalação do Wazuh manager
+
+Wazuh Master:
+
+# MANAGER=4.10.0
+
+# dnf -y install https://packages.wazuh.com/4.x/yum/wazuh-manager-$MANAGER-1.x86_64.rpm 
+
+# FILEBEAT=7.10.2
+
+# dnf -y install https://packages.wazuh.com/4.x/yum/filebeat-oss-$FILEBEAT-x86_64.rpm
+
+# CONFIG=4.10
+
+# curl -so /etc/filebeat/filebeat.yml https://packages.wazuh.com/$CONFIG/tpl/wazuh/filebeat/filebeat.yml
+
+# vim /etc/filebeat/filebeat.yml
+
+# Wazuh - Filebeat configuration file
+output.elasticsearch:
+  hosts: ["192.168.15.140:9200", "192.168.15.141:9200", "192.168.15.142:9200", "192.168.15.143:9200"]
+  protocol: https
+
+...
+
+# filebeat keystore create
+
+# echo admin | filebeat keystore add username --stdin --force
+
+# echo admin | filebeat keystore add password --stdin --force
+
+# FILE=4.10.0
+
+# curl -so /etc/filebeat/wazuh-template.json https://raw.githubusercontent.com/wazuh/wazuh/v$FILE/extensions/elasticsearch/7.x/wazuh-template.json
+
+# chmod go+r /etc/filebeat/wazuh-template.json
+
+# curl -s https://packages.wazuh.com/4.x/filebeat/wazuh-filebeat-0.4.tar.gz | tar -xvz -C /usr/share/filebeat/module
+
+# NODE_NAME=master
+
+# mkdir /etc/filebeat/certs
+# tar -xf ./wazuh-certificates.tar -C /etc/filebeat/certs/ ./$NODE_NAME.pem ./$NODE_NAME-key.pem ./root-ca.pem
+# mv -n /etc/filebeat/certs/$NODE_NAME.pem /etc/filebeat/certs/filebeat.pem
+# mv -n /etc/filebeat/certs/$NODE_NAME-key.pem /etc/filebeat/certs/filebeat-key.pem
+# chmod 500 /etc/filebeat/certs
+# chmod 400 /etc/filebeat/certs/*
+# chown -R root:root /etc/filebeat/certs
+
+# echo admin | /var/ossec/bin/wazuh-keystore -f indexer -k username
+# echo admin | /var/ossec/bin/wazuh-keystore -f indexer -k password
+
+# vim /var/ossec/etc/ossec.conf
+
+<indexer>
+  <enabled>yes</enabled>
+  <hosts>
+    <host>https://192.168.15.140:9200</host>
+    <host>https://192.168.15.141:9200</host>
+    <host>https://192.168.15.142:9200</host>
+    <host>https://192.168.15.143:9200</host>
+  </hosts>
+  <ssl>
+
+...
+
+<cluster>
+    <name>wazuh</name>
+    <node_name>master</node_name>
+    <key>b9367d8ae17992f9aefef845f0a79a8f</key>
+    <node_type>master</node_type>
+    <port>1516</port>
+    <bind_addr>0.0.0.0</bind_addr>
+    <nodes>
+        <node>192.168.15.140</node>
+    </nodes>
+    <hidden>no</hidden>
+    <disabled>no</disabled>
+</cluster>
+
+# openssl rand -hex 16
+
+# systemctl daemon-reload
+# systemctl enable --now wazuh-manager
+# systemctl status wazuh-manager
+
+# /var/ossec/bin/cluster_control -l
+
+# systemctl restart filebeat
+
+# filebeat test output
+
+# /var/ossec/bin/wazuh-modulesd
