@@ -1,0 +1,167 @@
+// Aula 6 - HAProxy para o balanceamento de carga no Wazuh
+
+# dnf install -y haproxy
+
+# haproxy -v
+
+# systemctl enable haproxy
+
+# mv /etc/haproxy/haproxy.cfg /etc/haproxy/haproxy.cfg.bk
+
+# vim /etc/haproxy/haproxy.cfg
+
+global
+  chroot /var/lib/haproxy
+  user haproxy
+  group haproxy
+  maxconn 4000
+  pidfile /var/run/haproxy.pid
+  stats socket /var/lib/haproxy/stats level admin
+  hard-stop-after 30016
+  log 127.0.0.1 local2 info
+
+defaults unnamed_defaults_1
+  mode http
+  maxconn 4000
+  log global
+  option tcplog
+  option redispatch
+  option dontlognull
+  timeout check 10s
+  timeout connect 10s
+  timeout client 1m
+  timeout queue 1m
+  timeout server 1m
+  retries 3
+
+frontend wazuh_register from unnamed_defaults_1
+  mode tcp
+  bind :1515
+  default_backend wazuh_register
+
+frontend wazuh_reporting_front
+  mode tcp
+  bind :1514 name wazuh_reporting_front_bind
+  default_backend wazuh_reporting
+
+backend wazuh_register from unnamed_defaults_1
+  mode tcp
+  balance leastconn
+  server master 192.168.15.140:1515 check
+  server worker1 192.168.15.141:1515 check
+  server worker2 192.168.15.142:1515 check
+  server worker3 192.168.15.143:1515 check
+
+backend wazuh_reporting
+  mode tcp
+  balance leastconn
+  server master 192.168.15.140:1514 check
+  server worker1 192.168.15.141:1514 check
+  server worker2 192.168.15.142:1514 check
+  server worker3 192.168.15.143:1514 check
+
+# openssl req -x509 -newkey rsa:4096 -keyout lb-key.pem -out lb-cert.pem -sha256 -nodes -addext "subjectAltName=IP:192.168.15.150" -subj "/C=BR/ST=SaoPaulo/O=Wazuh/CN=LoadBalancer-Internal"
+
+# mkdir -p /etc/haproxy/ssl/
+
+# mv lb-cert.pem /etc/haproxy/ssl/
+
+# mv lb-key.pem /etc/haproxy/ssl/
+
+# curl -sL https://github.com/haproxytech/dataplaneapi/releases/download/v2.8.13/dataplaneapi_2.8.13_linux_x86_64.tar.gz | tar xz && cp dataplaneapi /usr/local/bin/
+
+# vim /etc/haproxy/dataplaneapi.yml
+
+config_version: 2
+name: nginx
+mode: single
+status: ""
+dataplaneapi:
+  host: 0.0.0.0
+  port: 5555
+  advertised:
+    api_address: ""
+    api_port: 0
+  tls:
+    tls_port: 6443
+    tls_certificate: /etc/haproxy/ssl/lb-cert.pem    # substitua pelo caminho do seu certificado
+    tls_key: /etc/haproxy/ssl/lb-key.pem    # substitua pelo caminho da sua chave aqui
+  scheme:
+  - https
+  transaction:
+    transaction_dir: /tmp/haproxy
+  user:
+  - name: admin
+    insecure: true
+    password: admin
+haproxy:
+  config_file: /etc/haproxy/haproxy.cfg
+  haproxy_bin: /usr/sbin/haproxy
+  reload:
+    reload_delay: 5
+    reload_cmd: service haproxy reload
+    restart_cmd: service haproxy restart
+    reload_strategy: custom
+
+# systemctl restart haproxy.service
+
+# /usr/local/bin/dataplaneapi -f /etc/haproxy/dataplaneapi.yml &
+
+# curl -k -X GET --user admin:admin https://localhost:6443/v2/info
+
+# jobs
+
+# kill %1
+
+# vim /etc/systemd/system/dataplaneapi.service
+
+[Unit]
+Description=HAProxy Data Plane API
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/dataplaneapi -f /etc/haproxy/dataplaneapi.yml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+# sudo systemctl daemon-reload
+
+# sudo systemctl enable --now dataplaneapi
+
+# sudo systemctl status dataplaneapi
+
+# openssl req -x509 -newkey rsa:4096 -keyout lb-key.pem -out lb-cert.pem -sha256 -nodes -addext "subjectAltName=IP:192.168.15.140" -subj "/C=BR/ST=SaoPaulo/O=Wazuh/CN=Manager-Internal"
+
+# mkdir -p /etc/haproxy/cert
+
+# mv lb-key.pem /etc/haproxy/cert/master-key.pem
+
+# mv lb-cert.pem /etc/haproxy/cert/master-cert.pem
+
+# scp /etc/haproxy/ssl/lb-cert.pem root@192.168.15.140:/etc/haproxy/cert/
+
+# vim /var/ossec/etc/ossec.conf
+
+<cluster>
+   [...]
+   
+   <haproxy_helper>
+      <haproxy_disabled>no</haproxy_disabled>
+      <haproxy_address>192.168.15.150</haproxy_address>
+      <haproxy_user>admin</haproxy_user>
+      <haproxy_password>admin</haproxy_password>
+      <haproxy_protocol>https</haproxy_protocol>
+      <haproxy_port>6443</haproxy_port>
+      <haproxy_cert>/etc/haproxy/cert/lb-cert.pem</haproxy_cert>
+      <client_cert_key>/etc/haproxy/cert/master-cert.pem</client_cert_key>
+   </haproxy_helper>
+</cluster>
+
+# /var/ossec/bin/wazuh-control restart
+
+# tail -n500 /var/ossec/logs/cluster.log | grep 'HAPHelper'
